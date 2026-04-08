@@ -5,6 +5,7 @@ export const env = createEnv({
   server: {
     DATABASE_URL: z.string().url(),
     AUTH_SECRET: z.string().min(32),
+    SUPABASE_URL: z.string().url().optional(),
     SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
     GEMINI_API_KEY: z.string().min(1).optional(),
   },
@@ -12,12 +13,11 @@ export const env = createEnv({
     NEXT_PUBLIC_APP_URL: z.string().url(),
     NEXT_PUBLIC_APP_NAME: z.string().min(1),
     NEXT_PUBLIC_INSTITUTION_NAME: z.string().min(1),
-    NEXT_PUBLIC_SUPABASE_URL: z.string().url().optional(),
   },
   runtimeEnv: {
     DATABASE_URL: process.env.DATABASE_URL,
     AUTH_SECRET: process.env.AUTH_SECRET,
-    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    SUPABASE_URL: process.env.SUPABASE_URL,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
