@@ -1,0 +1,213 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum UserRole {
+  ADMIN
+  VIEWER
+}
+
+// ============================================
+// USERS
+// ============================================
+
+model User {
+  id           String    @id @default(uuid()) @db.Uuid
+  username     String    @unique @db.VarChar(50)
+  passwordHash String    @map("password_hash") @db.VarChar(255)
+  name         String    @db.VarChar(100)
+  role         UserRole  @default(ADMIN)
+  isActive     Boolean   @default(true) @map("is_active")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  assets         Asset[]         @relation("CreatedByUser")
+  auditLogs      AuditLog[]
+  assetMutations AssetMutation[]
+
+  @@map("users")
+}
+
+// ============================================
+// MASTER DATA
+// ============================================
+
+model Category {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique @db.VarChar(100)
+  codePrefix  String   @unique @map("code_prefix") @db.VarChar(5)
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  assets Asset[]
+
+  @@map("categories")
+}
+
+model Location {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @db.VarChar(100)
+  building    String?  @db.VarChar(100)
+  floor       String?  @db.VarChar(20)
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  assets Asset[]
+
+  @@unique([name, building, floor])
+  @@map("locations")
+}
+
+model FundSource {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique @db.VarChar(100)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  assets Asset[]
+
+  @@map("fund_sources")
+}
+
+model Condition {
+  id            String   @id @default(uuid()) @db.Uuid
+  name          String   @unique @db.VarChar(50)
+  severityLevel Int      @map("severity_level") @db.SmallInt
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  assets Asset[]
+
+  @@map("conditions")
+}
+
+// ============================================
+// ASSETS
+// ============================================
+
+model Asset {
+  id            String    @id @default(uuid()) @db.Uuid
+  assetCode     String    @unique @map("asset_code") @db.VarChar(20)
+  qrToken       String    @unique @default(uuid()) @map("qr_token") @db.Uuid
+  name          String    @db.VarChar(255)
+  categoryId    String    @map("category_id") @db.Uuid
+  brand         String?   @db.VarChar(100)
+  model         String?   @db.VarChar(100)
+  serialNumber  String?   @unique @map("serial_number") @db.VarChar(100)
+  yearAcquired  Int?      @map("year_acquired")
+  yearPurchased Int?      @map("year_purchased")
+  fundSourceId  String?   @map("fund_source_id") @db.Uuid
+  vendor        String?   @db.VarChar(200)
+  userName      String?   @map("user_name") @db.VarChar(100)
+  userPosition  String?   @map("user_position") @db.VarChar(100)
+  locationId    String?   @map("location_id") @db.Uuid
+  conditionId   String    @map("condition_id") @db.Uuid
+  description   String?   @db.Text
+  createdBy     String    @map("created_by") @db.Uuid
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  category   Category    @relation(fields: [categoryId], references: [id])
+  fundSource FundSource? @relation(fields: [fundSourceId], references: [id])
+  location   Location?   @relation(fields: [locationId], references: [id])
+  condition  Condition   @relation(fields: [conditionId], references: [id])
+  creator    User        @relation("CreatedByUser", fields: [createdBy], references: [id])
+  photos     AssetPhoto[]
+  mutations  AssetMutation[]
+  scanLogs   ScanLog[]
+
+  @@index([categoryId])
+  @@index([conditionId])
+  @@index([locationId])
+  @@index([fundSourceId])
+  @@index([deletedAt])
+  @@index([assetCode])
+  @@index([qrToken])
+  @@map("assets")
+}
+
+model AssetPhoto {
+  id         String   @id @default(uuid()) @db.Uuid
+  assetId    String   @map("asset_id") @db.Uuid
+  filePath   String   @map("file_path") @db.VarChar(500)
+  fileName   String   @map("file_name") @db.VarChar(255)
+  fileSize   Int      @map("file_size")
+  isPrimary  Boolean  @default(false) @map("is_primary")
+  uploadedAt DateTime @default(now()) @map("uploaded_at")
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId])
+  @@map("asset_photos")
+}
+
+// ============================================
+// MUTATIONS
+// ============================================
+
+model AssetMutation {
+  id           String   @id @default(uuid()) @db.Uuid
+  assetId      String   @map("asset_id") @db.Uuid
+  fromUser     String?  @map("from_user") @db.VarChar(100)
+  fromPosition String?  @map("from_position") @db.VarChar(100)
+  toUser       String   @map("to_user") @db.VarChar(100)
+  toPosition   String?  @map("to_position") @db.VarChar(100)
+  mutationDate DateTime @map("mutation_date") @db.Date
+  notes        String?  @db.Text
+  createdBy    String   @map("created_by") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  asset   Asset @relation(fields: [assetId], references: [id])
+  creator User  @relation(fields: [createdBy], references: [id])
+
+  @@index([assetId])
+  @@map("asset_mutations")
+}
+
+// ============================================
+// AUDIT & SCAN LOGS
+// ============================================
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  entityType String   @map("entity_type") @db.VarChar(50)
+  entityId   String   @map("entity_id") @db.Uuid
+  action     String   @db.VarChar(20)
+  changedBy  String   @map("changed_by") @db.Uuid
+  changes    Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [changedBy], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([changedBy])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model ScanLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  assetId   String   @map("asset_id") @db.Uuid
+  scannedAt DateTime @default(now()) @map("scanned_at")
+  ipAddress String?  @map("ip_address") @db.VarChar(45)
+  userAgent String?  @map("user_agent") @db.Text
+
+  asset Asset @relation(fields: [assetId], references: [id])
+
+  @@index([assetId])
+  @@index([scannedAt])
+  @@map("scan_logs")
+}
