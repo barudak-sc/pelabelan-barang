@@ -63,5 +63,8 @@
   "license": "ISC",
   "optionalDependencies": {
     "lightningcss": "^1.32.0"
+  },
+  "overrides": {
+    "@hono/node-server": ">=1.19.13"
   }
 }
