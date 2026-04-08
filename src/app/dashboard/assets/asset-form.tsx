@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Loader2, Upload, X, ImageIcon } from "lucide-react";
+import { Loader2, Upload, X, ImageIcon, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { assetSchema, type AssetFormData } from "@/lib/validations/asset";
 import { createAsset, updateAsset, uploadAssetPhotos } from "@/actions/assets";
+import { extractAssetFromImage, type ExtractedAssetData } from "@/actions/extract";
 
 type MasterItem = { id: string; name: string };
 type CategoryItem = MasterItem & { codePrefix: string };
@@ -59,7 +60,11 @@ export function AssetForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [photos, setPhotos] = useState<PhotoPreview[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const extractInputRef = useRef<HTMLInputElement>(null);
   const isEdit = !!defaultValues?.id;
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [extractedFields, setExtractedFields] = useState<Set<string>>(new Set());
+  const [nullFields, setNullFields] = useState<Set<string>>(new Set());
 
   const form = useForm<AssetFormData>({
     resolver: zodResolver(assetSchema),
@@ -111,6 +116,81 @@ export function AssetForm({
     });
   }
 
+  function fuzzyMatchId(name: string | null, items: MasterItem[]): string {
+    if (!name) return "";
+    const lower = name.toLowerCase();
+    const match = items.find((i) => i.name.toLowerCase().includes(lower) || lower.includes(i.name.toLowerCase()));
+    return match?.id ?? "";
+  }
+
+  async function handleExtract(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsExtracting(true);
+    setExtractedFields(new Set());
+    setNullFields(new Set());
+
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const result = await extractAssetFromImage(fd);
+
+      if (!result.success || !result.data) {
+        toast.error(result.error || "Gagal mengekstrak data");
+        return;
+      }
+
+      const d = result.data;
+      const filled = new Set<string>();
+      const empty = new Set<string>();
+
+      const setField = (key: string, formKey: keyof AssetFormData, value: string | number | null | undefined) => {
+        if (value != null && value !== "") {
+          form.setValue(formKey, value as never);
+          filled.add(key);
+        } else {
+          empty.add(key);
+        }
+      };
+
+      setField("name", "name", d.nama_barang);
+      setField("brand", "brand", d.merk);
+      setField("model", "model", d.type_model);
+      setField("serialNumber", "serialNumber", d.serial_number);
+      setField("vendor", "vendor", d.vendor);
+      setField("userName", "userName", d.pengguna);
+      setField("userPosition", "userPosition", d.jabatan);
+      setField("description", "description", d.keterangan);
+      setField("yearAcquired", "yearAcquired", d.tahun_barang);
+      setField("yearPurchased", "yearPurchased", d.tahun_pembelian);
+
+      // Fuzzy match master data
+      const catId = fuzzyMatchId(d.kategori, categories);
+      if (catId) { form.setValue("categoryId", catId); filled.add("categoryId"); } else { empty.add("categoryId"); }
+
+      const condId = fuzzyMatchId(d.kondisi, conditions);
+      if (condId) { form.setValue("conditionId", condId); filled.add("conditionId"); } else { empty.add("conditionId"); }
+
+      const fundId = fuzzyMatchId(d.sumber_dana, fundSources);
+      if (fundId) { form.setValue("fundSourceId", fundId); filled.add("fundSourceId"); } else { empty.add("fundSourceId"); }
+
+      setExtractedFields(filled);
+      setNullFields(empty);
+      toast.success(`${filled.size} field berhasil diekstrak`);
+    } catch {
+      toast.error("Terjadi kesalahan saat mengekstrak");
+    } finally {
+      setIsExtracting(false);
+      if (extractInputRef.current) extractInputRef.current.value = "";
+    }
+  }
+
+  function fieldBorder(key: string) {
+    if (extractedFields.has(key)) return "ring-2 ring-green-400/50";
+    if (nullFields.has(key)) return "ring-2 ring-yellow-400/50";
+    return "";
+  }
+
   async function onSubmit(data: AssetFormData) {
     setIsSubmitting(true);
     try {
@@ -156,6 +236,60 @@ export function AssetForm({
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      {/* AI Extraction */}
+      {!isEdit && (
+        <Card>
+          <CardContent className="pt-6 space-y-4">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-brand-500" />
+              <h3 className="font-semibold">Ekstrak Otomatis dari Gambar</h3>
+            </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Upload foto/dokumen aset dan AI akan mengisi form secara otomatis
+            </p>
+            <div className="flex items-center gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => extractInputRef.current?.click()}
+                disabled={isExtracting}
+              >
+                {isExtracting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Mengekstrak data...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload & Extract
+                  </>
+                )}
+              </Button>
+              {extractedFields.size > 0 && (
+                <div className="flex items-center gap-3 text-xs">
+                  <span className="flex items-center gap-1">
+                    <span className="h-2.5 w-2.5 rounded-full bg-green-400" />
+                    {extractedFields.size} terisi
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="h-2.5 w-2.5 rounded-full bg-yellow-400" />
+                    {nullFields.size} kosong
+                  </span>
+                </div>
+              )}
+            </div>
+            <input
+              ref={extractInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,application/pdf"
+              className="hidden"
+              onChange={handleExtract}
+            />
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardContent className="pt-6 space-y-4">
           <h3 className="font-semibold">Informasi Dasar</h3>
@@ -163,7 +297,7 @@ export function AssetForm({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="name">Nama Barang *</Label>
-              <Input id="name" {...form.register("name")} />
+              <Input id="name" className={fieldBorder("name")} {...form.register("name")} />
               {form.formState.errors.name && (
                 <p className="text-sm text-destructive">
                   {form.formState.errors.name.message}
@@ -177,8 +311,15 @@ export function AssetForm({
                 value={form.watch("categoryId")}
                 onValueChange={(v) => form.setValue("categoryId", v ?? "")}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih kategori" />
+                <SelectTrigger className={fieldBorder("categoryId")}>
+                  <SelectValue placeholder="Pilih kategori">
+                    {form.watch("categoryId")
+                      ? (() => {
+                          const cat = categories.find(c => c.id === form.watch("categoryId"));
+                          return cat ? `${cat.name} (${cat.codePrefix})` : undefined;
+                        })()
+                      : undefined}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((c) => (
@@ -201,8 +342,12 @@ export function AssetForm({
                 value={form.watch("conditionId")}
                 onValueChange={(v) => form.setValue("conditionId", v ?? "")}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih kondisi" />
+                <SelectTrigger className={fieldBorder("conditionId")}>
+                  <SelectValue placeholder="Pilih kondisi">
+                    {form.watch("conditionId")
+                      ? conditions.find(c => c.id === form.watch("conditionId"))?.name
+                      : undefined}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {conditions.map((c) => (
@@ -221,22 +366,22 @@ export function AssetForm({
 
             <div className="space-y-2">
               <Label htmlFor="brand">Merk</Label>
-              <Input id="brand" {...form.register("brand")} />
+              <Input id="brand" className={fieldBorder("brand")} {...form.register("brand")} />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="model">Type/Model</Label>
-              <Input id="model" {...form.register("model")} />
+              <Input id="model" className={fieldBorder("model")} {...form.register("model")} />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="serialNumber">Serial Number</Label>
-              <Input id="serialNumber" {...form.register("serialNumber")} />
+              <Input id="serialNumber" className={fieldBorder("serialNumber")} {...form.register("serialNumber")} />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="vendor">Vendor/Penyedia</Label>
-              <Input id="vendor" {...form.register("vendor")} />
+              <Input id="vendor" className={fieldBorder("vendor")} {...form.register("vendor")} />
             </div>
           </div>
         </CardContent>
@@ -293,8 +438,12 @@ export function AssetForm({
                 value={form.watch("fundSourceId") || ""}
                 onValueChange={(v) => form.setValue("fundSourceId", !v || v === "" ? "" : v)}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih sumber dana" />
+                <SelectTrigger className={fieldBorder("fundSourceId")}>
+                  <SelectValue placeholder="Pilih sumber dana">
+                    {form.watch("fundSourceId")
+                      ? fundSources.find(f => f.id === form.watch("fundSourceId"))?.name
+                      : undefined}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">-</SelectItem>
@@ -313,8 +462,17 @@ export function AssetForm({
                 value={form.watch("locationId") || ""}
                 onValueChange={(v) => form.setValue("locationId", !v || v === "" ? "" : v)}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih lokasi" />
+                <SelectTrigger className={fieldBorder("locationId")}>
+                  <SelectValue placeholder="Pilih lokasi">
+                    {form.watch("locationId")
+                      ? (() => {
+                          const loc = locations.find(l => l.id === form.watch("locationId"));
+                          if (!loc) return undefined;
+                          return [loc.name, loc.building, loc.floor ? `Lt.${loc.floor}` : null]
+                            .filter(Boolean).join(" - ");
+                        })()
+                      : undefined}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">-</SelectItem>
@@ -339,11 +497,11 @@ export function AssetForm({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="userName">Nama Pengguna</Label>
-              <Input id="userName" {...form.register("userName")} />
+              <Input id="userName" className={fieldBorder("userName")} {...form.register("userName")} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="userPosition">Jabatan</Label>
-              <Input id="userPosition" {...form.register("userPosition")} />
+              <Input id="userPosition" className={fieldBorder("userPosition")} {...form.register("userPosition")} />
             </div>
           </div>
 
