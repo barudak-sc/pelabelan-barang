@@ -1,7 +1,11 @@
 "use client";
 
+import React, { useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
+import { useSidebar } from "@/context/SidebarContext";
 import {
   LayoutDashboard,
   Package,
@@ -17,160 +21,254 @@ import {
   FileText,
   Settings,
   LogOut,
+  MoreHorizontal,
 } from "lucide-react";
-import { signOut } from "next-auth/react";
 
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-
+// ============================================================
+// Nav Config
+// ============================================================
 type NavItem = {
-  title: string;
+  name: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   adminOnly?: boolean;
 };
 
-const navSections: {
+type NavSection = {
   label: string;
   items: NavItem[];
-}[] = [
+};
+
+const navSections: NavSection[] = [
   {
     label: "Menu Utama",
     items: [
-      { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     ],
   },
   {
     label: "Aset",
     items: [
-      { title: "Daftar Aset", href: "/dashboard/assets", icon: Package },
-      { title: "Tambah Aset", href: "/dashboard/assets/new", icon: Plus, adminOnly: true },
-      { title: "Cetak Label", href: "/dashboard/labels", icon: Printer, adminOnly: true },
-      { title: "Scanner QR", href: "/dashboard/scan", icon: ScanLine },
-      { title: "Mutasi", href: "/dashboard/mutations", icon: ArrowLeftRight, adminOnly: true },
+      { name: "Daftar Aset", href: "/dashboard/assets", icon: Package },
+      { name: "Tambah Aset", href: "/dashboard/assets/new", icon: Plus, adminOnly: true },
+      { name: "Cetak Label", href: "/dashboard/labels", icon: Printer, adminOnly: true },
+      { name: "Scanner QR", href: "/dashboard/scan", icon: ScanLine },
+      { name: "Mutasi Aset", href: "/dashboard/mutations", icon: ArrowLeftRight, adminOnly: true },
     ],
   },
   {
     label: "Data Master",
     items: [
-      { title: "Kategori", href: "/dashboard/master/categories", icon: FolderTree, adminOnly: true },
-      { title: "Lokasi", href: "/dashboard/master/locations", icon: MapPin, adminOnly: true },
-      { title: "Sumber Dana", href: "/dashboard/master/fund-sources", icon: Wallet, adminOnly: true },
-      { title: "Kondisi", href: "/dashboard/master/conditions", icon: ShieldCheck, adminOnly: true },
+      { name: "Kategori", href: "/dashboard/master/categories", icon: FolderTree, adminOnly: true },
+      { name: "Lokasi", href: "/dashboard/master/locations", icon: MapPin, adminOnly: true },
+      { name: "Sumber Dana", href: "/dashboard/master/fund-sources", icon: Wallet, adminOnly: true },
+      { name: "Kondisi", href: "/dashboard/master/conditions", icon: ShieldCheck, adminOnly: true },
     ],
   },
   {
     label: "Administrasi",
     items: [
-      { title: "Pengguna", href: "/dashboard/users", icon: Users, adminOnly: true },
-      { title: "Audit Log", href: "/dashboard/audit-log", icon: FileText, adminOnly: true },
-      { title: "Pengaturan", href: "/dashboard/settings", icon: Settings, adminOnly: true },
+      { name: "Pengguna", href: "/dashboard/users", icon: Users, adminOnly: true },
+      { name: "Audit Log", href: "/dashboard/audit-log", icon: FileText, adminOnly: true },
+      { name: "Pengaturan", href: "/dashboard/settings", icon: Settings, adminOnly: true },
     ],
   },
 ];
 
+// ============================================================
+// Props
+// ============================================================
 type AppSidebarProps = {
   user: {
     name?: string | null;
+    email?: string | null;
     role: string;
   };
 };
 
+// ============================================================
+// AppSidebar Component
+// ============================================================
 export function AppSidebar({ user }: AppSidebarProps) {
+  const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const pathname = usePathname();
   const isAdmin = user.role === "ADMIN";
+  const isVisible = isExpanded || isHovered || isMobileOpen;
+
+  // Collect all nav hrefs (flattened) to detect more-specific matches
+  const allHrefs = navSections.flatMap((s) => s.items.map((i) => i.href));
+
+  // Active check — only highlight if no more-specific nav item also matches
+  // e.g. /dashboard/assets should NOT be active when /dashboard/assets/new is
+  const isActive = useCallback(
+    (href: string) => {
+      if (href === "/dashboard") return pathname === "/dashboard";
+      const matches = pathname === href || pathname.startsWith(href + "/");
+      if (!matches) return false;
+      // Check if there's a more specific nav item that also matches
+      const moreSpecific = allHrefs.some(
+        (other) =>
+          other !== href &&
+          other.startsWith(href) &&
+          (pathname === other || pathname.startsWith(other + "/"))
+      );
+      return !moreSpecific;
+    },
+    [pathname, allHrefs]
+  );
+
 
   return (
-    <Sidebar>
-      <SidebarHeader className="border-b p-4">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Package className="h-4 w-4" />
+    <>
+      {/* Mobile Backdrop */}
+      {isMobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-gray-900/50 lg:hidden"
+          onClick={() => {}} // handled by toggle in header
+        />
+      )}
+
+      <aside
+        className={`fixed top-0 left-0 flex flex-col h-screen px-5
+          bg-white dark:bg-gray-dark border-r border-gray-200 dark:border-gray-800
+          transition-all duration-300 ease-in-out z-50
+          ${isExpanded || isMobileOpen ? "w-[290px]" : isHovered ? "w-[290px]" : "w-[90px]"}
+          ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
+          lg:translate-x-0
+        `}
+        onMouseEnter={() => !isExpanded && setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        {/* Logo */}
+        <div
+          className={`flex py-8 ${!isExpanded && !isHovered ? "lg:justify-center" : "justify-start"}`}
+        >
+          <Link href="/dashboard" className="flex items-center">
+            {isVisible ? (
+              <>
+                <Image
+                  className="dark:hidden"
+                  src="/images/logo/logo.svg"
+                  alt="InvenTrack"
+                  width={160}
+                  height={36}
+                  priority
+                />
+                <Image
+                  className="hidden dark:block"
+                  src="/images/logo/logo-dark.svg"
+                  alt="InvenTrack"
+                  width={160}
+                  height={36}
+                  priority
+                />
+              </>
+            ) : (
+              <Image
+                src="/images/logo/logo-icon.svg"
+                alt="InvenTrack"
+                width={32}
+                height={32}
+                priority
+              />
+            )}
+          </Link>
+        </div>
+
+        {/* Nav */}
+        <div className="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
+          <nav className="mb-6">
+            <div className="flex flex-col gap-4">
+              {navSections.map((section) => {
+                const visibleItems = section.items.filter(
+                  (item) => !item.adminOnly || isAdmin
+                );
+                if (visibleItems.length === 0) return null;
+
+                return (
+                  <div key={section.label}>
+                    {/* Section Label */}
+                    <h2
+                      className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 font-semibold tracking-wider
+                        ${!isExpanded && !isHovered ? "lg:justify-center" : "justify-start"}
+                      `}
+                    >
+                      {isVisible ? (
+                        section.label
+                      ) : (
+                        <MoreHorizontal className="w-4 h-4" />
+                      )}
+                    </h2>
+
+                    {/* Items */}
+                    <ul className="flex flex-col gap-1">
+                      {visibleItems.map((item) => {
+                        const active = isActive(item.href);
+                        return (
+                          <li key={item.href}>
+                            <Link
+                              href={item.href}
+                              className={`menu-item group ${
+                                active ? "menu-item-active" : "menu-item-inactive"
+                              } ${!isVisible ? "lg:justify-center" : ""}`}
+                            >
+                              <span
+                                className={
+                                  active
+                                    ? "menu-item-icon-active"
+                                    : "menu-item-icon-inactive"
+                                }
+                              >
+                                <item.icon className="w-5 h-5 flex-shrink-0" />
+                              </span>
+                              {isVisible && (
+                                <span className="truncate">{item.name}</span>
+                              )}
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+          </nav>
+        </div>
+
+        {/* Footer — User Info */}
+        <div className="mt-auto pb-6 border-t border-gray-200 dark:border-gray-800 pt-4">
+          <div
+            className={`flex items-center gap-3 ${!isVisible ? "lg:justify-center" : ""}`}
+          >
+            {/* Avatar */}
+            <div className="flex-shrink-0 w-9 h-9 rounded-full bg-brand-100 dark:bg-brand-500/20 flex items-center justify-center text-brand-600 dark:text-brand-400 font-semibold text-sm">
+              {user.name?.charAt(0).toUpperCase() ?? "U"}
+            </div>
+
+            {/* Info + Logout */}
+            {isVisible && (
+              <>
+                <div className="flex-1 overflow-hidden">
+                  <p className="truncate text-sm font-medium text-gray-800 dark:text-white/90">
+                    {user.name ?? "User"}
+                  </p>
+                  <p className="truncate text-xs text-gray-500 dark:text-gray-400">
+                    {user.role}
+                  </p>
+                </div>
+                <button
+                  onClick={() => signOut({ callbackUrl: "/login" })}
+                  className="flex-shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-error-500 hover:bg-error-50 dark:hover:bg-error-500/10 transition-colors duration-200 cursor-pointer"
+                  title="Keluar"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </>
+            )}
           </div>
-          <span className="text-lg font-bold">InvenTrack</span>
-        </Link>
-      </SidebarHeader>
-      <SidebarContent>
-        {navSections.map((section) => {
-          const visibleItems = section.items.filter(
-            (item) => !item.adminOnly || isAdmin
-          );
-          if (visibleItems.length === 0) return null;
-
-          return (
-            <SidebarGroup key={section.label}>
-              <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {visibleItems.map((item) => {
-                    const isActive =
-                      pathname === item.href ||
-                      (item.href !== "/dashboard" &&
-                        pathname.startsWith(item.href));
-
-                    return (
-                      <SidebarMenuItem key={item.href}>
-                        <SidebarMenuButton
-                          isActive={isActive}
-                          render={<Link href={item.href} />}
-                        >
-                          <item.icon className="h-4 w-4" />
-                          <span>{item.title}</span>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    );
-                  })}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          );
-        })}
-      </SidebarContent>
-      <SidebarFooter className="border-t p-2">
-        <DropdownMenu>
-          <DropdownMenuTrigger className="flex w-full items-center gap-3 rounded-lg p-2 text-left hover:bg-accent">
-              <Avatar className="h-8 w-8">
-                <AvatarFallback className="text-xs">
-                  {user.name?.charAt(0).toUpperCase() ?? "U"}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 overflow-hidden">
-                <p className="truncate text-sm font-medium">
-                  {user.name ?? "User"}
-                </p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {user.role}
-                </p>
-              </div>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent side="top" align="start" className="w-56">
-            <DropdownMenuItem
-              onClick={() => signOut({ callbackUrl: "/login" })}
-              className="text-destructive"
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              Keluar
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </SidebarFooter>
-    </Sidebar>
+        </div>
+      </aside>
+    </>
   );
 }
