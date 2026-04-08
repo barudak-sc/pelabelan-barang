@@ -25,7 +25,13 @@ const breadcrumbMap: Record<string, string> = {
 
 export function AppHeader() {
   const pathname = usePathname();
-  const title = breadcrumbMap[pathname] ?? "Dashboard";
+  const title =
+    breadcrumbMap[pathname] ??
+    (pathname.match(/^\/dashboard\/assets\/[^/]+\/edit$/)
+      ? "Edit Aset"
+      : pathname.match(/^\/dashboard\/assets\/[^/]+$/)
+        ? "Detail Aset"
+        : "Dashboard");
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
