@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
+
 import type { ApexOptions } from "apexcharts";
 import {
   Package,
@@ -12,14 +13,7 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 
-const ReactApexChart = dynamic(() => import("react-apexcharts"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex h-[200px] items-center justify-center text-gray-400">
-      Memuat chart...
-    </div>
-  ),
-});
+const ReactApexChart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
 type Stats = {
   totalAssets: number;

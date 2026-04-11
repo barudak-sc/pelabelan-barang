@@ -314,3 +314,23 @@
     @apply bg-gray-200 rounded-full dark:bg-gray-700;
   }
 }
+
+/* =============================================
+   APEXCHARTS DARK MODE TOOLTIP
+   ============================================= */
+.dark .apexcharts-tooltip {
+  background: #1d2939 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #f9fafb !important;
+}
+
+.dark .apexcharts-tooltip-title {
+  background: #344054 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #f9fafb !important;
+}
+
+.dark .apexcharts-tooltip-text-y-label,
+.dark .apexcharts-tooltip-text-y-value {
+  color: #f9fafb !important;
+}
