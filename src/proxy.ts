@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const publicPaths = ["/login", "/verify", "/api/auth"];
+const publicPaths = ["/login", "/verify", "/api/auth", "/api/favicon"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

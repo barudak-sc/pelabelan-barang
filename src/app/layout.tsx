@@ -25,6 +25,15 @@ export async function generateMetadata(): Promise<Metadata> {
     description:
       settings.appDescription ||
       "Sistem manajemen inventaris & pelabelan aset berbasis QR Code",
+    icons: {
+      // /api/favicon proxies the uploaded logo from Supabase storage
+      // Using a proxy route avoids CORS issues and browser favicon restrictions
+      icon: [
+        { url: "/api/favicon", type: "image/png" },
+      ],
+      shortcut: "/api/favicon",
+      apple: "/api/favicon",
+    },
   };
 }
 
