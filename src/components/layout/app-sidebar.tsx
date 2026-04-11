@@ -92,7 +92,7 @@ type AppSidebarProps = {
 // AppSidebar Component
 // ============================================================
 export function AppSidebar({ user, appName = "InvenTrack", logoUrl }: AppSidebarProps) {
-  const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
+  const { isExpanded, isMobileOpen, isHovered, setIsHovered, closeMobileSidebar } = useSidebar();
   const pathname = usePathname();
   const isAdmin = user.role === "ADMIN";
   const isVisible = isExpanded || isHovered || isMobileOpen;
@@ -122,11 +122,11 @@ export function AppSidebar({ user, appName = "InvenTrack", logoUrl }: AppSidebar
 
   return (
     <>
-      {/* Mobile Backdrop */}
+      {/* Mobile Backdrop — klik di luar sidebar untuk menutup */}
       {isMobileOpen && (
         <div
           className="fixed inset-0 z-40 bg-gray-900/50 lg:hidden"
-          onClick={() => {}} // handled by toggle in header
+          onClick={closeMobileSidebar}
         />
       )}
 
@@ -227,6 +227,7 @@ export function AppSidebar({ user, appName = "InvenTrack", logoUrl }: AppSidebar
                           <li key={item.href}>
                             <Link
                               href={item.href}
+                              onClick={closeMobileSidebar}
                               className={`menu-item group ${
                                 active ? "menu-item-active" : "menu-item-inactive"
                               } ${!isVisible ? "lg:justify-center" : ""}`}
