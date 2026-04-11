@@ -7,7 +7,7 @@ export const assetSchema = z.object({
   model: z.string().max(100).optional().or(z.literal("")),
   serialNumber: z.string().max(100).optional().or(z.literal("")),
   yearAcquired: z.coerce.number().int().min(1900).max(2100).optional().or(z.literal("")),
-  yearPurchased: z.coerce.number().int().min(1900).max(2100).optional().or(z.literal("")),
+  yearPurchased: z.coerce.number().int().min(1900, "Tahun pembelian wajib diisi").max(2100, "Tahun tidak valid").optional().or(z.literal("")),
   fundSourceId: z.string().uuid().optional().or(z.literal("")),
   vendor: z.string().max(200).optional().or(z.literal("")),
   userName: z.string().max(100).optional().or(z.literal("")),

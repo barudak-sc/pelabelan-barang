@@ -12,14 +12,13 @@ type ActionResult<T = unknown> = {
   error?: string;
 };
 
-async function generateAssetCode(categoryId: string): Promise<string> {
+async function generateAssetCode(categoryId: string, yearPurchased: number): Promise<string> {
   const category = await prisma.category.findUniqueOrThrow({
     where: { id: categoryId },
     select: { codePrefix: true },
   });
 
-  const year = new Date().getFullYear();
-  const prefix = `${category.codePrefix}-${year}`;
+  const prefix = `${category.codePrefix}-${yearPurchased}`;
 
   const lastAsset = await prisma.asset.findFirst({
     where: { assetCode: { startsWith: prefix } },
@@ -77,6 +76,10 @@ export async function createAsset(
 
     const d = parsed.data;
 
+    if (!d.yearPurchased) {
+      return { success: false, error: "Tahun pembelian wajib diisi" };
+    }
+
     // Check unique serial number
     if (d.serialNumber && d.serialNumber !== "") {
       const existing = await prisma.asset.findFirst({
@@ -87,7 +90,7 @@ export async function createAsset(
       }
     }
 
-    const assetCode = await generateAssetCode(d.categoryId);
+    const assetCode = await generateAssetCode(d.categoryId, d.yearPurchased as number);
 
     const asset = await prisma.asset.create({
       data: {
@@ -98,7 +101,7 @@ export async function createAsset(
         model: cleanOptional(d.model),
         serialNumber: cleanOptional(d.serialNumber),
         yearAcquired: cleanOptionalInt(d.yearAcquired),
-        yearPurchased: cleanOptionalInt(d.yearPurchased),
+        yearPurchased: d.yearPurchased as number,
         fundSourceId: cleanOptional(d.fundSourceId),
         vendor: cleanOptional(d.vendor),
         userName: cleanOptional(d.userName),
@@ -135,6 +138,11 @@ export async function updateAsset(
     }
 
     const d = parsed.data;
+
+    if (!d.yearPurchased) {
+      return { success: false, error: "Tahun pembelian wajib diisi" };
+    }
+
     const oldAsset = await prisma.asset.findUniqueOrThrow({ where: { id } });
 
     // Check unique serial number (exclude self)
@@ -158,7 +166,7 @@ export async function updateAsset(
       model: cleanOptional(d.model),
       serialNumber: cleanOptional(d.serialNumber),
       yearAcquired: cleanOptionalInt(d.yearAcquired),
-      yearPurchased: cleanOptionalInt(d.yearPurchased),
+      yearPurchased: d.yearPurchased as number,
       fundSourceId: cleanOptional(d.fundSourceId),
       vendor: cleanOptional(d.vendor),
       userName: cleanOptional(d.userName),

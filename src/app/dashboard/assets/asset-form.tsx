@@ -473,7 +473,7 @@ export function AssetForm({
             </div>
 
             <div className="space-y-2">
-              <Label>Tahun Pembelian</Label>
+              <Label>Tahun Pembelian <span className="text-destructive">*</span></Label>
               <Select
                 value={String(form.watch("yearPurchased") || "")}
                 onValueChange={(v) => form.setValue("yearPurchased", !v || v === "" ? "" : Number(v))}
@@ -482,7 +482,6 @@ export function AssetForm({
                   <SelectValue placeholder="Pilih tahun" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">-</SelectItem>
                   {yearOptions.map((y) => (
                     <SelectItem key={y} value={String(y)}>
                       {y}
@@ -490,6 +489,9 @@ export function AssetForm({
                   ))}
                 </SelectContent>
               </Select>
+              {form.formState.errors.yearPurchased && (
+                <p className="text-xs text-destructive">{form.formState.errors.yearPurchased.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
