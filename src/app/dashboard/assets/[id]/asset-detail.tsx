@@ -13,6 +13,7 @@ import {
   ArrowLeftRight,
   Calendar,
   User,
+  Printer,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -107,7 +108,7 @@ export function AssetDetail({ asset, appUrl, isAdmin }: Props) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => router.back()}>
+          <Button variant="ghost" size="icon" onClick={() => router.back()} data-print-hide>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
@@ -117,20 +118,26 @@ export function AssetDetail({ asset, appUrl, isAdmin }: Props) {
             </p>
           </div>
         </div>
-        {isAdmin && (
-          <div className="flex gap-2">
-            <Link href={`/dashboard/assets/${asset.id}/edit`}>
-              <Button variant="outline">
-                <Pencil className="mr-2 h-4 w-4" />
-                Edit
+        <div className="flex gap-2" data-print-hide>
+          <Button variant="outline" onClick={() => window.print()}>
+            <Printer className="mr-2 h-4 w-4" />
+            Print
+          </Button>
+          {isAdmin && (
+            <>
+              <Link href={`/dashboard/assets/${asset.id}/edit`}>
+                <Button variant="outline">
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Edit
+                </Button>
+              </Link>
+              <Button variant="destructive" onClick={() => setShowDelete(true)}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Hapus
               </Button>
-            </Link>
-            <Button variant="destructive" onClick={() => setShowDelete(true)}>
-              <Trash2 className="mr-2 h-4 w-4" />
-              Hapus
-            </Button>
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -303,7 +310,7 @@ export function AssetDetail({ asset, appUrl, isAdmin }: Props) {
               <p className="text-center text-xs text-muted-foreground break-all">
                 {verifyUrl}
               </p>
-              <Button onClick={downloadQR} variant="outline" className="w-full">
+              <Button onClick={downloadQR} variant="outline" className="w-full" data-print-hide>
                 <Download className="mr-2 h-4 w-4" />
                 Download QR
               </Button>

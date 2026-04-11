@@ -79,7 +79,7 @@ export function AppHeader({ user }: AppHeaderProps) {
   const userInitial = userName.charAt(0).toUpperCase();
 
   return (
-    <header className="sticky top-0 flex w-full bg-white dark:bg-gray-dark border-b border-gray-200 dark:border-gray-800 z-[99] shadow-theme-xs">
+    <header data-print-hide className="sticky top-0 flex w-full bg-white dark:bg-gray-dark border-b border-gray-200 dark:border-gray-800 z-[99] shadow-theme-xs">
       <div className="flex items-center justify-between w-full px-4 py-3 lg:px-6">
 
         {/* Left: Sidebar Toggle + Page Title */}

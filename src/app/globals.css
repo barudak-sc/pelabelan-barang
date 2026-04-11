@@ -334,3 +334,59 @@
 .dark .apexcharts-tooltip-text-y-value {
   color: #f9fafb !important;
 }
+
+/* =============================================
+   PRINT STYLES — Detail Aset
+   ============================================= */
+@media print {
+  /* Force light background for print */
+  html, body {
+    background: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Hide sidebar, header, and action buttons */
+  aside,
+  nav,
+  header,
+  [data-print-hide] {
+    display: none !important;
+  }
+
+  /* Make main content full width */
+  main,
+  [role="main"] {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+  }
+
+  /* Remove overflow hidden from layout containers */
+  .flex.h-screen.overflow-hidden {
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  /* Cards: remove shadow/border for cleaner print */
+  [class*="rounded-2xl"],
+  [class*="rounded-xl"],
+  [class*="rounded-lg"] {
+    box-shadow: none !important;
+  }
+
+  /* Ensure images print */
+  img {
+    max-width: 100% !important;
+    page-break-inside: avoid;
+  }
+
+  /* Prevent page break inside cards */
+  [class*="CardContent"],
+  .space-y-6 > div {
+    page-break-inside: avoid;
+  }
+}

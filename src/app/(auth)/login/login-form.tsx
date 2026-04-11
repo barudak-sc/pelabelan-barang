@@ -15,7 +15,14 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
-export function LoginForm() {
+type LoginFormProps = {
+  appName: string;
+  institutionName: string;
+  appDescription: string | null;
+  logoUrl: string | null;
+};
+
+export function LoginForm({ appName, appDescription, logoUrl }: LoginFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
@@ -62,15 +69,19 @@ export function LoginForm() {
         {/* Content */}
         <div className="relative z-10 max-w-md px-10 text-white text-center">
           {/* Logo Icon */}
-          <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm border border-white/30 shadow-theme-lg">
-            <Package className="h-10 w-10 text-white" />
+          <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm border border-white/30 shadow-theme-lg overflow-hidden">
+            {logoUrl ? (
+              <img src={logoUrl} alt={appName} className="h-14 w-14 object-contain" />
+            ) : (
+              <Package className="h-10 w-10 text-white" />
+            )}
           </div>
 
           <h1 className="text-4xl font-bold tracking-tight mb-4">
-            InvenTrack
+            {appName}
           </h1>
           <p className="text-lg text-brand-100 leading-relaxed mb-8">
-            Sistem manajemen inventaris & pelabelan aset berbasis QR Code yang terintegrasi dan mudah digunakan.
+            {appDescription || "Sistem manajemen inventaris & pelabelan aset berbasis QR Code yang terintegrasi dan mudah digunakan."}
           </p>
 
           {/* Feature pills */}
@@ -94,10 +105,14 @@ export function LoginForm() {
           {/* Mobile logo */}
           <div className="flex justify-center mb-8 lg:hidden">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-500 shadow-theme-sm">
-                <Package className="h-5 w-5 text-white" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-500 shadow-theme-sm overflow-hidden">
+                {logoUrl ? (
+                  <img src={logoUrl} alt={appName} className="h-7 w-7 object-contain" />
+                ) : (
+                  <Package className="h-5 w-5 text-white" />
+                )}
               </div>
-              <span className="text-xl font-bold text-gray-900 dark:text-white">InvenTrack</span>
+              <span className="text-xl font-bold text-gray-900 dark:text-white">{appName}</span>
             </div>
           </div>
 
@@ -187,7 +202,7 @@ export function LoginForm() {
 
           {/* Footer */}
           <p className="mt-8 text-center text-xs text-gray-400 dark:text-gray-600">
-            © {new Date().getFullYear()} InvenTrack. Sistem Inventaris Aset.
+            © {new Date().getFullYear()} {appName}. Sistem Inventaris Aset.
           </p>
         </div>
       </div>

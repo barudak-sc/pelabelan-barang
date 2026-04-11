@@ -1,4 +1,3 @@
-import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ShieldCheck, AlertTriangle } from "lucide-react";
 import { PhotoCarousel } from "@/components/shared/photo-carousel";
+import { getAppSettings } from "@/actions/settings";
 
 export default async function VerifyPage({
   params,
@@ -61,8 +61,8 @@ export default async function VerifyPage({
     );
   }
 
-  const institutionName =
-    process.env.NEXT_PUBLIC_INSTITUTION_NAME || "Instansi";
+  const settings = await getAppSettings();
+  const institutionName = settings.institutionName;
 
   function conditionColor(severity: number) {
     if (severity <= 1) return "bg-green-100 text-green-800";

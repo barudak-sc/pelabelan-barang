@@ -84,12 +84,14 @@ type AppSidebarProps = {
     email?: string | null;
     role: string;
   };
+  appName?: string;
+  logoUrl?: string | null;
 };
 
 // ============================================================
 // AppSidebar Component
 // ============================================================
-export function AppSidebar({ user }: AppSidebarProps) {
+export function AppSidebar({ user, appName = "InvenTrack", logoUrl }: AppSidebarProps) {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const pathname = usePathname();
   const isAdmin = user.role === "ADMIN";
@@ -129,6 +131,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
       )}
 
       <aside
+        data-print-hide
         className={`fixed top-0 left-0 flex flex-col h-screen px-5
           bg-white dark:bg-gray-dark border-r border-gray-200 dark:border-gray-800
           transition-all duration-300 ease-in-out z-50
@@ -143,13 +146,26 @@ export function AppSidebar({ user }: AppSidebarProps) {
         <div
           className={`flex py-8 ${!isExpanded && !isHovered ? "lg:justify-center" : "justify-start"}`}
         >
-          <Link href="/dashboard" className="flex items-center">
-            {isVisible ? (
+          <Link href="/dashboard" className="flex items-center gap-2.5">
+            {logoUrl ? (
+              <>
+                <img
+                  src={logoUrl}
+                  alt={appName}
+                  className="h-8 w-8 object-contain flex-shrink-0"
+                />
+                {isVisible && (
+                  <span className="text-lg font-bold text-gray-900 dark:text-white truncate">
+                    {appName}
+                  </span>
+                )}
+              </>
+            ) : isVisible ? (
               <>
                 <Image
                   className="dark:hidden"
                   src="/images/logo/logo.svg"
-                  alt="InvenTrack"
+                  alt={appName}
                   width={160}
                   height={36}
                   priority
@@ -157,7 +173,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
                 <Image
                   className="hidden dark:block"
                   src="/images/logo/logo-dark.svg"
-                  alt="InvenTrack"
+                  alt={appName}
                   width={160}
                   height={36}
                   priority
@@ -166,7 +182,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
             ) : (
               <Image
                 src="/images/logo/logo-icon.svg"
-                alt="InvenTrack"
+                alt={appName}
                 width={32}
                 height={32}
                 priority

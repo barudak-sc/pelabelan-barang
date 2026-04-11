@@ -65,6 +65,8 @@ export function AssetForm({
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractedFields, setExtractedFields] = useState<Set<string>>(new Set());
   const [nullFields, setNullFields] = useState<Set<string>>(new Set());
+  const [isDragOverExtract, setIsDragOverExtract] = useState(false);
+  const [isDragOverPhoto, setIsDragOverPhoto] = useState(false);
 
   const form = useForm<AssetFormData>({
     resolver: zodResolver(assetSchema),
@@ -185,6 +187,50 @@ export function AssetForm({
     }
   }
 
+  async function handleExtractDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setIsDragOverExtract(false);
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    const valid = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+    if (!valid.includes(file.type)) {
+      toast.error("Format tidak didukung. Gunakan JPG, PNG, WebP, atau PDF.");
+      return;
+    }
+    // Reuse handleExtract logic via synthetic event
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    if (extractInputRef.current) {
+      extractInputRef.current.files = dt.files;
+      extractInputRef.current.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+  }
+
+  function handlePhotoDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setIsDragOverPhoto(false);
+    const files = Array.from(e.dataTransfer.files);
+    const maxTotal = 5 - existingPhotos.length;
+    const valid = ["image/jpeg", "image/png", "image/webp"];
+    const filtered = files.filter((f) => {
+      if (!valid.includes(f.type)) {
+        toast.error(`${f.name}: format tidak didukung`);
+        return false;
+      }
+      if (f.size > 5 * 1024 * 1024) {
+        toast.error(`${f.name}: melebihi 5MB`);
+        return false;
+      }
+      return true;
+    });
+    if (photos.length + filtered.length > maxTotal) {
+      toast.error(`Maksimal ${maxTotal} foto baru`);
+      return;
+    }
+    const previews = filtered.map((file) => ({ file, url: URL.createObjectURL(file) }));
+    setPhotos((prev) => [...prev, ...previews]);
+  }
+
   function fieldBorder(key: string) {
     if (extractedFields.has(key)) return "ring-2 ring-green-400/50";
     if (nullFields.has(key)) return "ring-2 ring-yellow-400/50";
@@ -247,38 +293,51 @@ export function AssetForm({
             <p className="text-sm text-gray-500 dark:text-gray-400">
               Upload foto/dokumen aset dan AI akan mengisi form secara otomatis
             </p>
-            <div className="flex items-center gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => extractInputRef.current?.click()}
-                disabled={isExtracting}
-              >
-                {isExtracting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Mengekstrak data...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload & Extract
-                  </>
-                )}
-              </Button>
-              {extractedFields.size > 0 && (
-                <div className="flex items-center gap-3 text-xs">
-                  <span className="flex items-center gap-1">
-                    <span className="h-2.5 w-2.5 rounded-full bg-green-400" />
-                    {extractedFields.size} terisi
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <span className="h-2.5 w-2.5 rounded-full bg-yellow-400" />
-                    {nullFields.size} kosong
-                  </span>
-                </div>
+
+            {/* Drag & Drop Zone */}
+            <div
+              onDragOver={(e) => { e.preventDefault(); setIsDragOverExtract(true); }}
+              onDragLeave={() => setIsDragOverExtract(false)}
+              onDrop={handleExtractDrop}
+              onClick={() => !isExtracting && extractInputRef.current?.click()}
+              className={`
+                flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-6 text-center transition-colors duration-150 cursor-pointer
+                ${
+                  isDragOverExtract
+                    ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10"
+                    : "border-gray-200 dark:border-gray-700 hover:border-brand-400 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                }
+              `}
+            >
+              {isExtracting ? (
+                <>
+                  <Loader2 className="h-7 w-7 animate-spin text-brand-500" />
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Mengekstrak data...</p>
+                </>
+              ) : (
+                <>
+                  <Upload className={`h-7 w-7 ${isDragOverExtract ? "text-brand-500" : "text-gray-400"}`} />
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                    {isDragOverExtract ? "Lepaskan file di sini" : "Drag & drop file atau klik untuk pilih"}
+                  </p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">JPG, PNG, WebP, PDF</p>
+                </>
               )}
             </div>
+
+            {extractedFields.size > 0 && (
+              <div className="flex items-center gap-3 text-xs">
+                <span className="flex items-center gap-1">
+                  <span className="h-2.5 w-2.5 rounded-full bg-green-400" />
+                  {extractedFields.size} terisi
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="h-2.5 w-2.5 rounded-full bg-yellow-400" />
+                  {nullFields.size} kosong
+                </span>
+              </div>
+            )}
+
             <input
               ref={extractInputRef}
               type="file"
@@ -540,35 +599,60 @@ export function AssetForm({
             </div>
           )}
 
-          <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
-            {photos.map((p, i) => (
-              <div
-                key={i}
-                className="relative aspect-square overflow-hidden rounded-lg border"
-              >
-                <img
-                  src={p.url}
-                  alt={p.file.name}
-                  className="h-full w-full object-cover"
-                />
+          {/* Drag & Drop Zone */}
+          <div
+            onDragOver={(e) => { e.preventDefault(); setIsDragOverPhoto(true); }}
+            onDragLeave={() => setIsDragOverPhoto(false)}
+            onDrop={handlePhotoDrop}
+            className={`
+              rounded-xl border-2 border-dashed p-4 transition-colors duration-150
+              ${
+                isDragOverPhoto
+                  ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10"
+                  : "border-gray-200 dark:border-gray-700"
+              }
+            `}
+          >
+            <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
+              {photos.map((p, i) => (
+                <div
+                  key={i}
+                  className="relative aspect-square overflow-hidden rounded-lg border"
+                >
+                  <img
+                    src={p.url}
+                    alt={p.file.name}
+                    className="h-full w-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removePhoto(i)}
+                    className="absolute right-1 top-1 rounded-full bg-destructive p-1 text-white"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+              {existingPhotos.length + photos.length < 5 && (
                 <button
                   type="button"
-                  onClick={() => removePhoto(i)}
-                  className="absolute right-1 top-1 rounded-full bg-destructive p-1 text-white"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed text-muted-foreground hover:border-primary hover:text-primary"
                 >
-                  <X className="h-3 w-3" />
+                  <ImageIcon className="h-6 w-6" />
+                  <span className="text-xs">Tambah</span>
                 </button>
-              </div>
-            ))}
-            {existingPhotos.length + photos.length < 5 && (
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed text-muted-foreground hover:border-primary hover:text-primary"
-              >
-                <ImageIcon className="h-6 w-6" />
-                <span className="text-xs">Tambah</span>
-              </button>
+              )}
+            </div>
+            {isDragOverPhoto && (
+              <p className="mt-3 text-center text-sm font-medium text-brand-500">
+                Lepaskan foto di sini
+              </p>
+            )}
+            {!isDragOverPhoto && existingPhotos.length + photos.length < 5 && (
+              <p className="mt-3 text-center text-xs text-gray-400 dark:text-gray-500">
+                Atau drag &amp; drop foto langsung ke area ini
+              </p>
             )}
           </div>
 

@@ -83,6 +83,19 @@ async function main() {
   }
   console.log(`Seeded ${locations.length} locations`);
 
+  // 6. App Settings (singleton)
+  const existingSetting = await prisma.appSetting.findFirst();
+  if (!existingSetting) {
+    await prisma.appSetting.create({
+      data: {
+        appName: "InvenTrack",
+        institutionName: process.env.NEXT_PUBLIC_INSTITUTION_NAME || "Instansi",
+        appDescription: "Sistem manajemen inventaris & pelabelan aset berbasis QR Code yang terintegrasi dan mudah digunakan.",
+      },
+    });
+  }
+  console.log("Seeded app settings");
+
   console.log("Seeding complete.");
 }
 

@@ -33,6 +33,7 @@ yarn-error.log*
 CLAUDE.md
 .agent
 PRD.md
+TASK.md
 
 # env files (can opt-in for committing if needed)
 .env

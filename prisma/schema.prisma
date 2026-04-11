@@ -211,3 +211,18 @@ model ScanLog {
   @@index([scannedAt])
   @@map("scan_logs")
 }
+
+// ============================================
+// APP SETTINGS
+// ============================================
+
+model AppSetting {
+  id              String   @id @default(uuid()) @db.Uuid
+  appName         String   @default("InvenTrack") @map("app_name") @db.VarChar(100)
+  institutionName String   @default("Instansi") @map("institution_name") @db.VarChar(200)
+  appDescription  String?  @map("app_description") @db.Text
+  logoUrl         String?  @map("logo_url") @db.VarChar(500)
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("app_settings")
+}
