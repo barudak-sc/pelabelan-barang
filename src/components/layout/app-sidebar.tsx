@@ -163,33 +163,22 @@ export function AppSidebar({ user, appName = "InvenTrack", logoUrl }: AppSidebar
                   </span>
                 )}
               </>
-            ) : isVisible ? (
+            ) : (
               <>
                 <Image
-                  className="dark:hidden"
-                  src="/images/logo/logo.svg"
+                  src="/images/logo/logo-icon.svg"
                   alt={appName}
-                  width={160}
-                  height={36}
+                  width={32}
+                  height={32}
+                  className="h-8 w-8 flex-shrink-0"
                   priority
                 />
-                <Image
-                  className="hidden dark:block"
-                  src="/images/logo/logo-dark.svg"
-                  alt={appName}
-                  width={160}
-                  height={36}
-                  priority
-                />
+                {isVisible && (
+                  <span className="text-lg font-bold text-gray-900 dark:text-white truncate">
+                    {appName}
+                  </span>
+                )}
               </>
-            ) : (
-              <Image
-                src="/images/logo/logo-icon.svg"
-                alt={appName}
-                width={32}
-                height={32}
-                priority
-              />
             )}
           </Link>
         </div>
