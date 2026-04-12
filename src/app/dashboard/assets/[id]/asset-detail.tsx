@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -81,15 +81,13 @@ export function AssetDetail({ asset, appUrl, appName, isAdmin }: Props) {
   const [showDelete, setShowDelete] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState(0);
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
-  // eslint-disable-next-line react-compiler/react-compiler
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
   const verifyUrl = `${appUrl}/verify/${asset.qrToken}`;
-
-  // eslint-disable-next-line react-compiler/react-compiler
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     if (canvasRef.current) {
