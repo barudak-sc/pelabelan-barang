@@ -26,7 +26,8 @@ jobs:
             cd /var/www/pelabelan-barang
 
             echo "🔄 Pulling latest changes..."
-            git pull origin main
+            git fetch origin main
+            git reset --hard origin/main
 
             echo "📥 Installing dependencies..."
             npm install --frozen-lockfile
