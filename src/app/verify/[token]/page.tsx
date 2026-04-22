@@ -2,19 +2,10 @@ import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ShieldCheck, AlertTriangle, Info, MapPin, DollarSign } from "lucide-react";
+import { ShieldCheck, AlertTriangle, Info, MapPin } from "lucide-react";
 import { PhotoCarousel } from "@/components/shared/photo-carousel";
 import { getAppSettings } from "@/actions/settings";
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function formatRupiah(value: any): string {
-  if (value === null || value === undefined) return "-";
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(Number(value));
-}
+
 
 function formatDate(date: Date): string {
   return new Date(date).toLocaleDateString("id-ID", {
@@ -89,21 +80,7 @@ export default async function VerifyPage({
     return "bg-gray-100 text-gray-800";
   }
 
-  // Hitung Nilai Buku
-  const bookValue =
-    asset.acquisitionValue !== null && asset.depreciation !== null
-      ? Number(asset.acquisitionValue) - Number(asset.depreciation)
-      : null;
 
-  function formatBookValue(value: number | null): string {
-    if (value === null) return "-";
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -218,36 +195,6 @@ export default async function VerifyPage({
           </CardContent>
         </Card>
 
-        {/* Nilai Keuangan */}
-        <Card>
-          <CardHeader className="pb-2 pt-4">
-            <CardTitle className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-              <DollarSign className="h-4 w-4" />
-              Nilai Keuangan
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 pt-0">
-            <div>
-              <p className="text-xs text-muted-foreground">Nilai Perolehan</p>
-              <p className="text-sm font-medium">
-                {formatRupiah(asset.acquisitionValue)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Penyusutan</p>
-              <p className="text-sm font-medium text-red-600">
-                {formatRupiah(asset.depreciation)}
-              </p>
-            </div>
-            <Separator />
-            <div>
-              <p className="text-xs text-muted-foreground">Nilai Buku</p>
-              <p className="text-sm font-bold text-primary">
-                {formatBookValue(bookValue)}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Lokasi & Pengguna */}
         <Card>
