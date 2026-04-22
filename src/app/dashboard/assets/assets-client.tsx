@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Trash2, SlidersHorizontal, X, Search } from "lucide-react";
+import { Plus, Trash2, SlidersHorizontal, X, Search, FileSpreadsheet, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import { DataTable } from "@/components/shared/data-table";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { getColumns, type AssetRow } from "./columns";
 import { deleteAsset } from "@/actions/assets";
+import { exportAssets } from "@/actions/import-export";
 
 type FilterOption = { id: string; name: string };
 
@@ -47,6 +48,37 @@ export function AssetsClient({
     id: string;
     name: string;
   } | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+
+  async function handleExport() {
+    setIsExporting(true);
+    try {
+      const res = await exportAssets();
+      if (!res.success || !res.data) {
+        toast.error(res.error || "Gagal mengekspor data");
+        return;
+      }
+      const byteChars = atob(res.data);
+      const byteNumbers = new Uint8Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) {
+        byteNumbers[i] = byteChars.charCodeAt(i);
+      }
+      const blob = new Blob([byteNumbers], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `export_aset_${new Date().toISOString().split("T")[0]}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("File berhasil diunduh");
+    } catch {
+      toast.error("Gagal mengekspor data");
+    } finally {
+      setIsExporting(false);
+    }
+  }
 
   function updateFilter(key: string, value: string) {
     const params = new URLSearchParams();
@@ -110,6 +142,18 @@ export function AssetsClient({
         </div>
         {isAdmin && (
           <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleExport}
+              disabled={isExporting}
+            >
+              {isExporting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <FileSpreadsheet className="mr-2 h-4 w-4" />
+              )}
+              {isExporting ? "Mengekspor..." : "Export Excel"}
+            </Button>
             <Link href="/dashboard/assets/trash">
               <Button variant="outline">
                 <Trash2 className="mr-2 h-4 w-4" />
