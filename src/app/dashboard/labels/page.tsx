@@ -12,6 +12,8 @@ export default async function LabelsPage() {
       select: {
         id: true,
         assetCode: true,
+        itemCode: true,
+        nup: true,
         name: true,
         qrToken: true,
         yearPurchased: true,

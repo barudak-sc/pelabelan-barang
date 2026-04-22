@@ -58,7 +58,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 9,
     fontWeight: "bold",
-    textTransform: "uppercase",
     textAlign: "center",
     lineHeight: 1.3,
   },
@@ -100,6 +99,8 @@ const styles = StyleSheet.create({
 type AssetLabel = {
   id: string;
   assetCode: string;
+  itemCode: string | null;
+  nup: string | null;
   name: string;
   yearPurchased: number | null;
 };
@@ -140,8 +141,11 @@ function LabelDocument({ assets, qrDataUrls, institutionName, logoUrl }: Props) 
               {/* ── Content ── */}
               <View style={styles.content}>
                 <View style={styles.infoSection}>
-                  <Text style={styles.fieldLabel}>No. Registrasi</Text>
-                  <Text style={styles.fieldValue}>{asset.assetCode}</Text>
+                  <Text style={styles.fieldLabel}>Kode Barang</Text>
+                  <Text style={styles.fieldValue}>{asset.itemCode || "-"}</Text>
+
+                  <Text style={styles.fieldLabel}>NUP</Text>
+                  <Text style={styles.fieldValue}>{asset.nup || "-"}</Text>
 
                   <Text style={styles.fieldLabel}>Tahun Perolehan</Text>
                   <Text style={styles.fieldValue}>

@@ -24,6 +24,8 @@ const LabelPdfPreview = dynamic(() => import("./label-pdf").then((m) => m.LabelP
 type AssetItem = {
   id: string;
   assetCode: string;
+  itemCode: string | null;
+  nup: string | null;
   name: string;
   qrToken: string;
   yearPurchased: number | null;
